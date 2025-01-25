@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack - Smart Expense Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .expense-card:hover { transform: translateY(-2px); }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        .modal.active { display: flex; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Navigation -->
+        <nav class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <i class="bi bi-wallet2 text-2xl text-blue-600"></i>
+                        <span class="ml-2 font-bold text-xl">FinTrack</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button id="addExpenseBtn" class="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
+                            <i class="bi bi-plus-lg mr-2"></i>
+                            Add Expense
+                        </button>
+                        <button id="syncBtn" class="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                            <i class="bi bi-google mr-2"></i>
+                            Sync with Google Pay
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Dashboard Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-gray-500">Total Expenses</h3>
+                        <i class="bi bi-currency-rupee text-blue-600"></i>
+                    </div>
+                    <p class="text-2xl font-bold mt-2" id="totalExpenses">₹24,500</p>
+                    <p class="text-sm text-gray-500 mt-1">This month</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-gray-500">Budget</h3>
+                        <i class="bi bi-pie-chart text-green-600"></i>
+                    </div>
+                    <p class="text-2xl font-bold mt-2">₹50,000</p>
+                    <div class="mt-2 bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-green-600 h-2.5 rounded-full" style="width: 51%"></div>
+                    </div>
+                    <p class="text-sm text-green-500 mt-1">51% remaining</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-gray-500">Top Category</h3>
+                        <i class="bi bi-tag text-purple-600"></i>
+                    </div>
+                    <p class="text-2xl font-bold mt-2">Shopping</p>
+                    <p class="text-sm text-gray-500 mt-1">₹12,300 spent</p>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold">Recent Transactions</h2>
+                    <button class="text-blue-600 hover:text-blue-700">View All</button>
+                </div>
+                <div class="space-y-4" id="transactionsList">
+                    <!-- Transactions will be populated here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Add Expense Modal -->
+        <div id="expenseModal" class="modal items-center justify-center">
+            <div class="bg-white p-6 rounded-lg w-full max-w-md">
+                <h3 class="text-lg font-semibold mb-4">Add New Expense</h3>
+                <form id="expenseForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Title</label>
+                        <input type="text" id="expenseTitle" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Amount (₹)</label>
+                        <input type="number" id="expenseAmount" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Category</label>
+                        <select id="expenseCategory" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="Shopping">Shopping</option>
+                            <option value="Food">Food</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Bills">Bills</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancelExpense" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Add Expense</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let transactions = [
+            {
+                title: "Grocery Shopping",
+                amount: 2500,
+                date: "Today",
+                category: "Shopping",
+                icon: "cart"
+            },
+            {
+                title: "Restaurant Bill",
+                amount: 1200,
+                date: "Yesterday",
+                category: "Food",
+                icon: "cup-hot"
+            },
+            {
+                title: "Uber Ride",
+                amount: 350,
+                date: "2 days ago",
+                category: "Transport",
+                icon: "car-front"
+            }
+        ];
+
+        function getIconForCategory(category) {
+            const icons = {
+                'Shopping': 'cart',
+                'Food': 'cup-hot',
+                'Transport': 'car-front',
+                'Bills': 'receipt',
+                'Others': 'three-dots'
+            };
+            return icons[category] || 'tag';
+        }
+
+        function updateTransactionsList() {
+            const transactionsList = document.getElementById('transactionsList');
+            transactionsList.innerHTML = '';
+            
+            transactions.forEach(transaction => {
+                const transactionEl = document.createElement('div');
+                transactionEl.className = 'flex items-center justify-between p-4 rounded-lg bg-gray-50 expense-card transition-all duration-200';
+                transactionEl.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <i class="bi bi-${getIconForCategory(transaction.category)} text-blue-600"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h4 class="font-medium">${transaction.title}</h4>
+                            <p class="text-sm text-gray-500">${transaction.category} • ${transaction.date}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-medium">₹${transaction.amount}</p>
+                    </div>
+                `;
+                transactionsList.appendChild(transactionEl);
+            });
+
+            // Update total expenses
+            const total = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+            document.getElementById('totalExpenses').textContent = `₹${total}`;
+        }
+
+        // Modal handling
+        const modal = document.getElementById('expenseModal');
+        const addExpenseBtn = document.getElementById('addExpenseBtn');
+        const cancelExpenseBtn = document.getElementById('cancelExpense');
+        const expenseForm = document.getElementById('expenseForm');
+
+        addExpenseBtn.addEventListener('click', () => {
+            modal.classList.add('active');
+        });
+
+        cancelExpenseBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+            expenseForm.reset();
+        });
+
+        expenseForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = document.getElementById('expenseTitle').value;
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+            const category = document.getElementById('expenseCategory').value;
+
+            transactions.unshift({
+                title,
+                amount,
+                date: "Just now",
+                category,
+                icon: getIconForCategory(category)
+            });
+
+            updateTransactionsList();
+            modal.classList.remove('active');
+            expenseForm.reset();
+        });
+
+        // Google Pay sync simulation
+        document.getElementById('syncBtn').addEventListener('click', async function() {
+            try {
+                const response = await fetch('/api/sync-google-pay', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Sync failed');
+                }
+                
+                alert('Please note: This feature requires backend integration with Django and Google Pay API.\nCurrently this is just a frontend demonstration.');
+            } catch (error) {
+                alert('Error: Could not sync with Google Pay. Please try again later.');
+            }
+        });
+
+        // Initial render
+        updateTransactionsList();
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
